@@ -1,33 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'task.dart';
+
 void main() {
   runApp(const TaskFlowApp());
 }
 
-class Task {
-  const Task({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.priority,
-    required this.isCompleted,
-  });
-
-  final int id;
-  final String title;
-  final String description;
-  final String priority;
-  final bool isCompleted;
-}
-
-const demoTasks = [
+const demoTasks = <Task>[
   Task(
     id: 1,
     title: 'Revisar apuntes de Flutter',
     description: 'Repasar widgets y estado para la siguiente práctica.',
     priority: 'Alta',
     isCompleted: false,
+    userId: 1,
   ),
   Task(
     id: 2,
@@ -35,6 +22,7 @@ const demoTasks = [
     description: 'Organizar diapositivas y practicar la presentación.',
     priority: 'Alta',
     isCompleted: false,
+    userId: 1,
   ),
   Task(
     id: 3,
@@ -42,6 +30,7 @@ const demoTasks = [
     description: 'Anotar fechas y ordenar actividades por prioridad.',
     priority: 'Media',
     isCompleted: true,
+    userId: 1,
   ),
   Task(
     id: 4,
@@ -49,6 +38,7 @@ const demoTasks = [
     description: 'Terminar los componentes solicitados en clase.',
     priority: 'Media',
     isCompleted: false,
+    userId: 1,
   ),
   Task(
     id: 5,
@@ -56,8 +46,22 @@ const demoTasks = [
     description: 'Ejecutar el análisis y corregir advertencias.',
     priority: 'Baja',
     isCompleted: false,
+    userId: 1,
   ),
 ];
+
+Task? findTask(int? id) {
+  if (id == null) {
+    return null;
+  }
+
+  for (final task in demoTasks) {
+    if (task.id == id) {
+      return task;
+    }
+  }
+  return null;
+}
 
 final appRouter = GoRouter(
   routes: [
@@ -65,8 +69,8 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/task/:id',
       builder: (context, state) {
-        final taskId = int.parse(state.pathParameters['id']!);
-        return TaskDetailScreen(taskId: taskId);
+        final taskId = int.tryParse(state.pathParameters['id'] ?? '');
+        return TaskDetailScreen(task: findTask(taskId));
       },
     ),
   ],
@@ -99,18 +103,55 @@ class TaskCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      color: task.isCompleted ? Colors.green.shade50 : null,
       child: ListTile(
         onTap: onTap,
-        leading: Icon(
-          task.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-          color: task.isCompleted ? Colors.green : null,
-        ),
+        leading: CircleAvatar(child: Text('${task.id}')),
         title: Text(task.title),
-        subtitle: Text('${task.description}\nPrioridad: ${task.priority}'),
-        isThreeLine: true,
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(task.description),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  Chip(
+                    label: Text(task.priority),
+                    backgroundColor: _priorityColor(task.priority),
+                    side: BorderSide.none,
+                  ),
+                  Chip(
+                    label: Text(task.isCompleted ? 'Completada' : 'Pendiente'),
+                    backgroundColor: task.isCompleted
+                        ? Colors.green.shade100
+                        : Colors.orange.shade100,
+                    side: BorderSide.none,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
         trailing: const Icon(Icons.chevron_right),
       ),
     );
+  }
+
+  Color _priorityColor(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'alta':
+        return Colors.red.shade100;
+      case 'media':
+        return Colors.orange.shade100;
+      case 'baja':
+        return Colors.green.shade100;
+      default:
+        return Colors.grey.shade200;
+    }
   }
 }
 
@@ -137,29 +178,69 @@ class TaskListScreen extends StatelessWidget {
 }
 
 class TaskDetailScreen extends StatelessWidget {
-  const TaskDetailScreen({super.key, required this.taskId});
+  const TaskDetailScreen({super.key, required this.task});
 
-  final int taskId;
+  final Task? task;
 
   @override
   Widget build(BuildContext context) {
-    final task = demoTasks.firstWhere((item) => item.id == taskId);
+    final selectedTask = task;
+    if (selectedTask == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Detalle de tarea')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.search_off, size: 48),
+                const SizedBox(height: 12),
+                const Text('No se encontró la tarea.'),
+                const SizedBox(height: 16),
+                FilledButton.tonalIcon(
+                  onPressed: () => context.go('/'),
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Volver al listado'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       appBar: AppBar(title: const Text('Detalle de tarea')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(task.title, style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              'Tarea #${selectedTask.id}',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              selectedTask.title,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 16),
-            Text(task.description),
+            Text(selectedTask.description),
             const SizedBox(height: 16),
-            Chip(label: Text('Prioridad: ${task.priority}')),
-            const SizedBox(height: 12),
-            Text(task.isCompleted ? 'Estado: completada' : 'Estado: pendiente'),
-            const Spacer(),
+            Chip(label: Text('Prioridad: ${selectedTask.priority}')),
+            const SizedBox(height: 8),
+            Chip(
+              label: Text(
+                selectedTask.isCompleted
+                    ? 'Estado: completada'
+                    : 'Estado: pendiente',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text('Usuario: ${selectedTask.userId}'),
+            const SizedBox(height: 32),
             FilledButton.tonalIcon(
               onPressed: () => context.pop(),
               icon: const Icon(Icons.arrow_back),
