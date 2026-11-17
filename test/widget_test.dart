@@ -30,29 +30,26 @@ void main() {
     await tester.pumpWidget(const TaskFlowApp());
     expect(find.text('Mis tareas'), findsOneWidget);
     expect(find.text('Revisar apuntes de Flutter'), findsOneWidget);
+    expect(find.text('Prioridad: Alta').last, findsOneWidget);
 
-    await tester.scrollUntilVisible(
-      find.text('Organizar entregas de la semana'),
-      300,
-    );
-    await tester.tap(find.text('Organizar entregas de la semana'));
+    await tester.tap(find.text('Revisar apuntes de Flutter'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Tarea #3'), findsOneWidget);
+    expect(find.text('Detalle de tarea'), findsOneWidget);
     expect(
-      find.text('Anotar fechas y ordenar actividades por prioridad.'),
+      find.text('Repasar widgets y estado para la siguiente práctica.'),
       findsOneWidget,
     );
-    expect(find.text('Prioridad: Media'), findsOneWidget);
-    expect(find.text('Estado: completada'), findsOneWidget);
+    expect(find.text('Prioridad: Alta'), findsOneWidget);
+    expect(find.text('Estado: pendiente'), findsOneWidget);
     expect(find.text('Usuario: 1'), findsOneWidget);
 
-    await tester.tap(find.text('Volver al listado'));
+    appRouter.pop();
     await tester.pumpAndSettle();
     expect(find.text('Mis tareas'), findsOneWidget);
 
     appRouter.go('/task/999');
     await tester.pumpAndSettle();
-    expect(find.text('No se encontró la tarea.'), findsOneWidget);
+    expect(find.text('No se encontró esta tarea.'), findsOneWidget);
   });
 }
